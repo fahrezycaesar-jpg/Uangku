@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dompet Catatan — Keuangan</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --card: #1a1e28;
+    --card2: #1f2433;
+    --border: #2a2f3f;
+    --in: #22c55e;
+    --in-dim: #16a34a33;
+    --out: #f97316;
+    --out-dim: #ea580c33;
+    --accent: #6366f1;
+    --accent-dim: #6366f122;
+    --text: #e8eaf0;
+    --muted: #7b829a;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background subtle grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 24px 16px 80px; }
+
+  /* Header */
+  .header { text-align: center; margin-bottom: 32px; padding-top: 16px; }
+  .header-icon { font-size: 2rem; margin-bottom: 8px; }
+  .header h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #e8eaf0 0%, #6366f1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header p { font-size: 0.8rem; color: var(--muted); margin-top: 4px; letter-spacing: 0.5px; }
+
+  /* Summary Cards */
+  .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+  .sum-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s;
+  }
+  .sum-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .sum-card.in::before { background: linear-gradient(90deg, var(--in), transparent); }
+  .sum-card.out::before { background: linear-gradient(90deg, var(--out), transparent); }
+  .sum-card.saldo { grid-column: span 2; }
+  .sum-card.saldo::before { background: linear-gradient(90deg, var(--accent), transparent); }
+
+  .sum-label { font-size: 0.68rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .sum-card.in .sum-label { color: var(--in); }
+  .sum-card.out .sum-label { color: var(--out); }
+  .sum-card.saldo .sum-label { color: var(--accent); }
+
+  .sum-amount {
+    font-family: var(--mono);
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .sum-card.saldo .sum-amount { font-size: 1.5rem; }
+  .sum-amount.positive { color: var(--in); }
+  .sum-amount.negative { color: var(--out); }
+
+  /* Tab */
+  .tab-wrap { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 20px; gap: 4px; }
+  .tab-btn {
+    flex: 1; padding: 10px; border: none; border-radius: 9px; cursor: pointer;
+    font-family: var(--sans); font-size: 0.82rem; font-weight: 700; letter-spacing: 0.3px;
+    transition: all 0.25s; background: transparent; color: var(--muted);
+  }
+  .tab-btn.active-in { background: var(--in-dim); color: var(--in); }
+  .tab-btn.active-out { background: var(--out-dim); color: var(--out); }
+
+  /* Denomination Grid */
+  .section-label {
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+  }
+  .denom-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 24px; }
+  .denom-btn {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 6px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-align: center;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .denom-btn:hover { border-color: var(--accent); color: var(--text); transform: translateY(-2px); }
+  .denom-btn.selected-in { border-color: var(--in); background: var(--in-dim); color: var(--in); transform: translateY(-2px); }
+  .denom-btn.selected-out { border-color: var(--out); background: var(--out-dim); color: var(--out); transform: translateY(-2px); }
+  .denom-icon { font-size: 1.1rem; display: block; margin-bottom: 4px; }
+  .denom-val { display: block; white-space: nowrap; }
+
+  /* Input Section */
+  .input-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: none;
+    animation: slideIn 0.25s ease;
+  }
+  .input-section.visible { display: block; }
+  @keyframes slideIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+
+  .input-info {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--card2); border-radius: 10px; padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+  .input-info-icon { font-size: 1.3rem; }
+  .input-info-text { font-size: 0.8rem; color: var(--muted); }
+  .input-info-text strong { color: var(--text); font-size: 0.9rem; display: block; }
+
+  .input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .input-field-wrap { flex: 1; position: relative; }
+  .input-field-wrap label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 6px; }
+  .input-field {
+    width: 100%;
+    background: var(--card2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: var(--mono);
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+    -moz-appearance: textfield;
+  }
+  .input-field::-webkit-inner-spin-button,
+  .input-field::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .input-field:focus { border-color: var(--accent); }
+
+  .input-note-wrap { margin-bottom: 16px; }
+  .input-note-wrap label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 6px; }
+  .input-note {
+    width: 100%; background: var(--card2); border: 1.5px solid var(--border);
+    border-radius: 10px; padding: 10px 14px; font-family: var(--sans); font-size: 0.85rem;
+    color: var(--text); outline: none; transition: border-color 0.2s; resize: none; height: 60px;
+  }
+  .input-note:focus { border-color: var(--accent); }
+
+  .preview-total {
+    background: var(--card2); border-radius: 10px; padding: 12px 14px;
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 16px;
+  }
+  .preview-total span { font-size: 0.78rem; color: var(--muted); }
+  .preview-total strong { font-family: var(--mono); font-size: 1rem; }
+
+  .confirm-btn {
+    width: 100%; padding: 14px; border: none; border-radius: 12px;
+    font-family: var(--sans); font-size: 0.9rem; font-weight: 800; letter-spacing: 0.3px;
+    cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+  }
+  .confirm-btn.in-btn { background: var(--in); color: #0d0f14; }
+  .confirm-btn.out-btn { background: var(--out); color: #0d0f14; }
+  .confirm-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .confirm-btn:active { transform: scale(0.98); }
+
+  /* History */
+  .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .clear-btn {
+    font-size: 0.72rem; color: var(--muted); background: none; border: 1px solid var(--border);
+    border-radius: 8px; padding: 4px 10px; cursor: pointer; font-family: var(--sans);
+    transition: all 0.2s;
+  }
+  .clear-btn:hover { border-color: var(--out); color: var(--out); }
+
+  .history-list { display: flex; flex-direction: column; gap: 8px; }
+  .history-empty { text-align: center; padding: 32px; color: var(--muted); font-size: 0.85rem; }
+  .history-empty .empty-icon { font-size: 2rem; display: block; margin-bottom: 8px; }
+
+  .hist-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    animation: slideIn 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .hist-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+  }
+  .hist-item.in::before { background: var(--in); }
+  .hist-item.out::before { background: var(--out); }
+
+  .hist-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .hist-info { flex: 1; min-width: 0; }
+  .hist-name { font-size: 0.85rem; font-weight: 700; color: var(--text); }
+  .hist-meta { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+  .hist-note { font-size: 0.72rem; color: var(--muted); font-style: italic; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hist-amount { font-family: var(--mono); font-size: 0.95rem; font-weight: 500; text-align: right; flex-shrink: 0; }
+  .hist-amount.in { color: var(--in); }
+  .hist-amount.out { color: var(--out); }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: var(--card2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 20px;
+    font-size: 0.82rem; font-weight: 600;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 100; white-space: nowrap; display: flex; align-items: center; gap: 8px;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.in-toast { border-color: var(--in); color: var(--in); }
+  .toast.out-toast { border-color: var(--out); color: var(--out); }
+
+  /* Delete btn on history */
+  .hist-del {
+    background: none; border: none; cursor: pointer; color: var(--muted);
+    font-size: 1rem; padding: 4px; border-radius: 6px; transition: all 0.2s; flex-shrink: 0;
+  }
+  .hist-del:hover { color: var(--out); background: var(--out-dim); }
+
+  /* Ripple */
+  .ripple {
+    position: absolute; border-radius: 50%;
+    width: 60px; height: 60px; transform: scale(0);
+    animation: ripple-anim 0.5s linear;
+    background: rgba(255,255,255,0.12);
+    pointer-events: none;
+  }
+  @keyframes ripple-anim { to { transform: scale(4); opacity: 0; } }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-icon">💰</div>
+    <h1>Dompet Catatan</h1>
+    <p>CATAT · HITUNG · PANTAU</p>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary">
+    <div class="sum-card in">
+      <div class="sum-label">📥 Pemasukan</div>
+      <div class="sum-amount" id="total-in">Rp 0</div>
+    </div>
+    <div class="sum-card out">
+      <div class="sum-label">📤 Pengeluaran</div>
+      <div class="sum-amount" id="total-out">Rp 0</div>
+    </div>
+    <div class="sum-card saldo">
+      <div class="sum-label">⚖️ Saldo Bersih</div>
+      <div class="sum-amount" id="total-saldo">Rp 0</div>
+    </div>
+  </div>
+
+  <!-- Tab -->
+  <div class="tab-wrap">
+    <button class="tab-btn active-in" id="tab-in" onclick="setMode('in')">📥 Pemasukan</button>
+    <button class="tab-btn" id="tab-out" onclick="setMode('out')">📤 Pengeluaran</button>
+  </div>
+
+  <!-- Denomination -->
+  <div class="section-label">Pilih Nominal Uang</div>
+  <div class="denom-grid" id="denom-grid"></div>
+
+  <!-- Input Section -->
+  <div class="input-section" id="input-section">
+    <div class="input-info">
+      <div class="input-info-icon" id="info-icon">💵</div>
+      <div class="input-info-text">
+        <strong id="info-label">Rp 1.000</strong>
+        <span id="info-desc">Masukkan jumlah lembar / keping</span>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div class="input-field-wrap">
+        <label>Jumlah Lembar / Keping</label>
+        <input type="number" class="input-field" id="qty-input" placeholder="0" min="1" oninput="updatePreview()" onkeydown="enterConfirm(event)">
+      </div>
+    </div>
+
+    <div class="preview-total">
+      <span>Total nominal</span>
+      <strong id="preview-total">Rp 0</strong>
+    </div>
+
+    <div class="input-note-wrap">
+      <label>Catatan (opsional)</label>
+      <textarea class="input-note" id="note-input" placeholder="e.g. Beli makan siang..."></textarea>
+    </div>
+
+    <button class="confirm-btn in-btn" id="confirm-btn" onclick="confirmEntry()">
+      ✓ Konfirmasi Pemasukan
+    </button>
+  </div>
+
+  <!-- History -->
+  <div class="history-header">
+    <div class="section-label" style="margin:0">Riwayat Transaksi</div>
+    <button class="clear-btn" onclick="clearAll()">🗑 Hapus Semua</button>
+  </div>
+  <div class="history-list" id="history-list">
+    <div class="history-empty">
+      <span class="empty-icon">📋</span>
+      Belum ada transaksi.<br>Mulai catat pemasukan atau pengeluaran kamu!
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const DENOMS = [
+    { val: 1000,    label: '1.000',    icon: '💵' },
+    { val: 2000,    label: '2.000',    icon: '💵' },
+    { val: 5000,    label: '5.000',    icon: '💴' },
+    { val: 10000,   label: '10.000',   icon: '💴' },
+    { val: 20000,   label: '20.000',   icon: '💶' },
+    { val: 50000,   label: '50.000',   icon: '💶' },
+    { val: 100000,  label: '100.000',  icon: '💷' },
+  ];
+
+  let mode = 'in';
+  let selectedDenom = null;
+  let transactions = JSON.parse(localStorage.getItem('catatKeuangan') || '[]');
+
+  function setMode(m) {
+    mode = m;
+    selectedDenom = null;
+    document.getElementById('input-section').classList.remove('visible');
+    document.getElementById('qty-input').value = '';
+    document.getElementById('note-input').value = '';
+    updatePreview();
+
+    document.getElementById('tab-in').className = 'tab-btn' + (m === 'in' ? ' active-in' : '');
+    document.getElementById('tab-out').className = 'tab-btn' + (m === 'out' ? ' active-out' : '');
+
+    renderDenoms();
+  }
+
+  function renderDenoms() {
+    const grid = document.getElementById('denom-grid');
+    grid.innerHTML = '';
+    DENOMS.forEach(d => {
+      const btn = document.createElement('button');
+      btn.className = 'denom-btn' + (selectedDenom === d.val ? ` selected-${mode}` : '');
+      btn.innerHTML = `<span class="denom-icon">${d.icon}</span><span class="denom-val">Rp ${d.label}</span>`;
+      btn.onclick = (e) => { addRipple(btn, e); selectDenom(d); };
+      grid.appendChild(btn);
+    });
+  }
+
+  function addRipple(btn, e) {
+    const r = document.createElement('span');
+    r.className = 'ripple';
+    const rect = btn.getBoundingClientRect();
+    r.style.left = (e.clientX - rect.left - 30) + 'px';
+    r.style.top = (e.clientY - rect.top - 30) + 'px';
+    btn.appendChild(r);
+    setTimeout(() => r.remove(), 600);
+  }
+
+  function selectDenom(d) {
+    selectedDenom = d.val;
+    renderDenoms();
+    document.getElementById('info-icon').textContent = d.icon;
+    document.getElementById('info-label').textContent = 'Rp ' + d.label;
+    document.getElementById('info-desc').textContent =
+      `Masukkan jumlah lembar Rp ${d.label}`;
+    document.getElementById('confirm-btn').textContent =
+      mode === 'in' ? '✓ Konfirmasi Pemasukan' : '✓ Konfirmasi Pengeluaran';
+    document.getElementById('confirm-btn').className =
+      'confirm-btn ' + (mode === 'in' ? 'in-btn' : 'out-btn');
+    document.getElementById('input-section').classList.add('visible');
+    document.getElementById('qty-input').value = '';
+    document.getElementById('note-input').value = '';
+    updatePreview();
+    setTimeout(() => document.getElementById('qty-input').focus(), 100);
+  }
+
+  function updatePreview() {
+    const qty = parseInt(document.getElementById('qty-input').value) || 0;
+    const total = qty * (selectedDenom || 0);
+    document.getElementById('preview-total').textContent = 'Rp ' + formatNum(total);
+  }
+
+  function enterConfirm(e) {
+    if (e.key === 'Enter') confirmEntry();
+  }
+
+  function confirmEntry() {
+    const qty = parseInt(document.getElementById('qty-input').value);
+    if (!selectedDenom) return showToast('Pilih nominal dulu!', 'out');
+    if (!qty || qty < 1) return showToast('Isi jumlah lembar dulu!', 'out');
+
+    const total = qty * selectedDenom;
+    const note = document.getElementById('note-input').value.trim();
+    const denom = DENOMS.find(d => d.val === selectedDenom);
+
+    const tx = {
+      id: Date.now(),
+      mode,
+      denom: selectedDenom,
+      denomLabel: denom.label,
+      denomIcon: denom.icon,
+      qty,
+      total,
+      note,
+      time: new Date().toLocaleString('id-ID', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
+    };
+
+    transactions.unshift(tx);
+    save();
+    renderHistory();
+    updateSummary();
+
+    // Reset
+    document.getElementById('qty-input').value = '';
+    document.getElementById('note-input').value = '';
+    document.getElementById('preview-total').textContent = 'Rp 0';
+    selectedDenom = null;
+    renderDenoms();
+    document.getElementById('input-section').classList.remove('visible');
+
+    showToast(
+      (mode === 'in' ? '✅ Pemasukan' : '📤 Pengeluaran') + ' Rp ' + formatNum(total) + ' dicatat!',
+      mode === 'in' ? 'in' : 'out'
+    );
+  }
+
+  function renderHistory() {
+    const list = document.getElementById('history-list');
+    if (transactions.length === 0) {
+      list.innerHTML = `<div class="history-empty"><span class="empty-icon">📋</span>Belum ada transaksi.<br>Mulai catat pemasukan atau pengeluaran kamu!</div>`;
+      return;
+    }
+    list.innerHTML = '';
+    transactions.forEach(tx => {
+      const item = document.createElement('div');
+      item.className = 'hist-item ' + tx.mode;
+      item.innerHTML = `
+        <div class="hist-icon">${tx.denomIcon}</div>
+        <div class="hist-info">
+          <div class="hist-name">${tx.qty} × Rp ${tx.denomLabel}</div>
+          <div class="hist-meta">${tx.mode === 'in' ? '📥 Pemasukan' : '📤 Pengeluaran'} · ${tx.time}</div>
+          ${tx.note ? `<div class="hist-note">📝 ${tx.note}</div>` : ''}
+        </div>
+        <div class="hist-amount ${tx.mode}">${tx.mode === 'in' ? '+' : '-'}Rp ${formatNum(tx.total)}</div>
+        <button class="hist-del" onclick="deleteOne(${tx.id})" title="Hapus">✕</button>
+      `;
+      list.appendChild(item);
+    });
+  }
+
+  function deleteOne(id) {
+    transactions = transactions.filter(t => t.id !== id);
+    save();
+    renderHistory();
+    updateSummary();
+    showToast('Transaksi dihapus', 'out');
+  }
+
+  function clearAll() {
+    if (transactions.length === 0) return;
+    if (!confirm('Hapus semua transaksi?')) return;
+    transactions = [];
+    save();
+    renderHistory();
+    updateSummary();
+    showToast('Semua transaksi dihapus', 'out');
+  }
+
+  function updateSummary() {
+    const totalIn  = transactions.filter(t => t.mode === 'in').reduce((a, t) => a + t.total, 0);
+    const totalOut = transactions.filter(t => t.mode === 'out').reduce((a, t) => a + t.total, 0);
+    const saldo    = totalIn - totalOut;
+
+    document.getElementById('total-in').textContent  = 'Rp ' + formatNum(totalIn);
+    document.getElementById('total-out').textContent = 'Rp ' + formatNum(totalOut);
+
+    const saldoEl = document.getElementById('total-saldo');
+    saldoEl.textContent = (saldo < 0 ? '-' : '') + 'Rp ' + formatNum(Math.abs(saldo));
+    saldoEl.className = 'sum-amount' + (saldo > 0 ? ' positive' : saldo < 0 ? ' negative' : '');
+  }
+
+  function formatNum(n) {
+    return n.toLocaleString('id-ID');
+  }
+
+  function save() {
+    localStorage.setItem('catatKeuangan', JSON.stringify(transactions));
+  }
+
+  let toastTimer;
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + (type === 'in' ? 'in-toast' : 'out-toast');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  // Init
+  renderDenoms();
+  renderHistory();
+  updateSummary();
+</script>
+</body>
+</html>
