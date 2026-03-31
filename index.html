@@ -1,264 +1,758 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catatan Keuangan Digital</title>
-    <style>
-        :root {
-            --glass-bg: rgba(255, 255, 255, 0.1);
-            --glass-border: rgba(255, 255, 255, 0.2);
-            --glow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catatan Keuangan</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body {
-            margin: 0;
-            padding: 20px;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            background-attachment: fixed;
-            color: white;
-            min-height: 100vh;
-        }
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a40;
+    --accent-in: #00e5a0;
+    --accent-out: #ff4d6d;
+    --accent-neu: #7b6ef6;
+    --text: #e8e8f0;
+    --text-dim: #6b6b8a;
+    --glow-in: rgba(0,229,160,0.15);
+    --glow-out: rgba(255,77,109,0.15);
+  }
 
-        .container {
-            max-width: 500px;
-            margin: auto;
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: var(--glow);
-        }
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px 16px 80px;
+    background-image:
+      radial-gradient(ellipse 60% 40% at 20% 10%, rgba(123,110,246,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 80% 90%, rgba(0,229,160,0.06) 0%, transparent 60%);
+  }
 
-        h2 { text-align: center; margin-bottom: 25px; }
+  header {
+    text-align: center;
+    padding: 28px 0 32px;
+  }
+  header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.8rem, 6vw, 2.8rem);
+    font-weight: 800;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #fff 30%, var(--accent-neu));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p {
+    color: var(--text-dim);
+    font-size: 0.78rem;
+    margin-top: 6px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
 
-        .total-box {
-            background: rgba(255, 255, 255, 0.15);
-            padding: 15px;
-            border-radius: 15px;
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 1.5rem;
-            font-weight: bold;
-            border: 1px solid var(--glass-border);
-        }
+  /* Summary cards */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .summary-total {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px 16px;
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .summary-card.income { border-color: rgba(0,229,160,0.3); }
+  .summary-card.expense { border-color: rgba(255,77,109,0.3); }
+  .summary-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.05;
+    border-radius: inherit;
+  }
+  .summary-card.income::before { background: var(--accent-in); }
+  .summary-card.expense::before { background: var(--accent-out); }
 
-        .money-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 10px;
-            margin-bottom: 20px;
-        }
+  .summary-label {
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .summary-amount {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1rem, 4vw, 1.4rem);
+    font-weight: 700;
+  }
+  .summary-card.income .summary-amount { color: var(--accent-in); }
+  .summary-card.expense .summary-amount { color: var(--accent-out); }
+  .summary-total .summary-label { color: var(--text-dim); }
+  .summary-total .summary-amount {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.5rem, 6vw, 2.2rem);
+    font-weight: 800;
+    color: var(--text);
+  }
+  .summary-total .summary-amount.positive { color: var(--accent-in); }
+  .summary-total .summary-amount.negative { color: var(--accent-out); }
 
-        .money-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--glass-border);
-            color: white;
-            padding: 12px;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: 0.3s;
-            font-weight: 600;
-        }
+  /* Mode toggle */
+  .mode-toggle {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 5px;
+    margin: 20px 0 16px;
+    gap: 6px;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 12px 8px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+  .mode-btn.active.income {
+    background: rgba(0,229,160,0.12);
+    color: var(--accent-in);
+    box-shadow: 0 0 20px rgba(0,229,160,0.15);
+  }
+  .mode-btn.active.expense {
+    background: rgba(255,77,109,0.12);
+    color: var(--accent-out);
+    box-shadow: 0 0 20px rgba(255,77,109,0.15);
+  }
 
-        .money-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
+  /* Denomination grid */
+  .section-label {
+    font-size: 0.65rem;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+  .denom-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .denom-btn {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    padding: 12px 4px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .denom-btn:active { transform: scale(0.94); }
+  .denom-btn .denom-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    display: block;
+  }
+  .denom-btn .denom-label {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+    display: block;
+  }
+  .denom-btn.selected.income {
+    border-color: var(--accent-in);
+    background: rgba(0,229,160,0.08);
+    color: var(--accent-in);
+    box-shadow: 0 0 16px rgba(0,229,160,0.2);
+  }
+  .denom-btn.selected.expense {
+    border-color: var(--accent-out);
+    background: rgba(255,77,109,0.08);
+    color: var(--accent-out);
+    box-shadow: 0 0 16px rgba(255,77,109,0.2);
+  }
+  .denom-btn.selected .denom-label { color: inherit; opacity: 0.7; }
 
-        .history-section {
-            margin-top: 30px;
-        }
+  /* Input panel */
+  .input-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 20px 16px;
+    margin-bottom: 20px;
+    display: none;
+    animation: slideUp 0.3s ease;
+  }
+  .input-panel.visible { display: block; }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .input-panel .panel-info {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  .input-panel .panel-info strong {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.95rem;
+    color: var(--text);
+  }
 
-        .history-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
+  .qty-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .qty-label { font-size: 0.72rem; color: var(--text-dim); white-space: nowrap; }
+  .qty-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    padding: 12px 14px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+  .qty-input:focus { border-color: var(--accent-neu); }
+  .qty-input::placeholder { color: var(--text-dim); font-weight: 400; font-size: 0.85rem; }
 
-        .history-list {
-            list-style: none;
-            padding: 0;
-            max-height: 300px;
-            overflow-y: auto;
-        }
+  .desc-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    padding: 11px 14px;
+    outline: none;
+    margin-bottom: 14px;
+    transition: border-color 0.2s;
+  }
+  .desc-input:focus { border-color: var(--accent-neu); }
+  .desc-input::placeholder { color: var(--text-dim); }
 
-        .history-item {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 10px 15px;
-            margin-bottom: 8px;
-            border-radius: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border: 1px solid var(--glass-border);
-        }
+  .calc-preview {
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+  .calc-preview .calc-result {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-top: 4px;
+  }
+  .calc-preview .calc-result.income { color: var(--accent-in); }
+  .calc-preview .calc-result.expense { color: var(--accent-out); }
 
-        .btn-delete {
-            background: #ff4d4d;
-            border: none;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-        }
+  .confirm-btn {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .confirm-btn.income {
+    background: linear-gradient(135deg, rgba(0,229,160,0.9), rgba(0,200,140,0.9));
+    color: #000;
+    box-shadow: 0 4px 20px rgba(0,229,160,0.3);
+  }
+  .confirm-btn.expense {
+    background: linear-gradient(135deg, rgba(255,77,109,0.9), rgba(220,50,80,0.9));
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(255,77,109,0.3);
+  }
+  .confirm-btn:active { transform: scale(0.97); }
 
-        .btn-clear-all {
-            background: #ff3e3e;
-            border: none;
-            color: white;
-            padding: 8px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-        }
+  /* History */
+  .history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .clear-all-btn {
+    background: rgba(255,77,109,0.1);
+    border: 1px solid rgba(255,77,109,0.25);
+    border-radius: 8px;
+    color: var(--accent-out);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .clear-all-btn:hover { background: rgba(255,77,109,0.2); }
 
-        /* Modal Simple */
-        #input-area {
-            display: none;
-            margin-top: 20px;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 15px;
-            animation: fadeIn 0.3s;
-        }
+  .history-list { display: flex; flex-direction: column; gap: 8px; }
 
-        input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 8px;
-            border: 1px solid var(--glass-border);
-            background: rgba(255, 255, 255, 0.9);
-            color: #333;
-            box-sizing: border-box;
-        }
+  .history-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: fadeIn 0.25s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .history-item.income { border-left: 3px solid var(--accent-in); }
+  .history-item.expense { border-left: 3px solid var(--accent-out); }
 
-        .confirm-btn {
-            width: 100%;
-            padding: 12px;
-            background: #4caf50;
-            border: none;
-            color: white;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-        }
+  .history-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+  .history-item.income .history-icon { background: rgba(0,229,160,0.12); }
+  .history-item.expense .history-icon { background: rgba(255,77,109,0.12); }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-    </style>
+  .history-body { flex: 1; min-width: 0; }
+  .history-body .h-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .history-body .h-amount {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+  .history-item.income .h-amount { color: var(--accent-in); }
+  .history-item.expense .h-amount { color: var(--accent-out); }
+
+  .history-body .h-desc {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    margin-top: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .history-body .h-meta {
+    font-size: 0.62rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .history-body .h-meta span {
+    background: var(--surface2);
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin-right: 4px;
+  }
+
+  .delete-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .delete-btn:hover { background: rgba(255,77,109,0.15); color: var(--accent-out); }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+  }
+  .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 10px; }
+  .empty-state p { font-size: 0.78rem; line-height: 1.6; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px 24px;
+    max-width: 340px;
+    width: 100%;
+    animation: popIn 0.25s ease;
+  }
+  @keyframes popIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .modal h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+    color: var(--accent-out);
+  }
+  .modal p { font-size: 0.78rem; color: var(--text-dim); line-height: 1.6; margin-bottom: 22px; }
+  .modal-btns { display: flex; gap: 10px; }
+  .modal-btns button {
+    flex: 1;
+    padding: 13px;
+    border: none;
+    border-radius: 11px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .modal-btns .cancel-modal {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .modal-btns .confirm-modal {
+    background: var(--accent-out);
+    color: #fff;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 0.78rem;
+    color: var(--text);
+    z-index: 9999;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Catatan Keuangan</h2>
-    
-    <div class="total-box">
-        Total: Rp <span id="total-amount">0</span>
-    </div>
+<header>
+  <h1>💰 Catatan Keuangan</h1>
+  <p>Kelola uang dengan mudah</p>
+</header>
 
-    <div class="money-grid">
-        <button class="money-btn" onclick="selectMoney(1000)">1.000</button>
-        <button class="money-btn" onclick="selectMoney(2000)">2.000</button>
-        <button class="money-btn" onclick="selectMoney(5000)">5.000</button>
-        <button class="money-btn" onclick="selectMoney(10000)">10.000</button>
-        <button class="money-btn" onclick="selectMoney(20000)">20.000</button>
-        <button class="money-btn" onclick="selectMoney(50000)">50.000</button>
-        <button class="money-btn" onclick="selectMoney(100000)">100.000</button>
-    </div>
-
-    <div id="input-area">
-        <p id="selected-label">Jumlah lembar Rp 1.000:</p>
-        <input type="number" id="qty-input" placeholder="Contoh: 9" min="1">
-        <button class="confirm-btn" onclick="addTransaction()">Konfirmasi</button>
-    </div>
-
-    <div class="history-section">
-        <div class="history-header">
-            <h3>Riwayat</h3>
-            <button class="btn-clear-all" onclick="clearAll()">Hapus Semua</button>
-        </div>
-        <ul id="history-list" class="history-list"></ul>
-    </div>
+<!-- Summary -->
+<div class="summary-grid">
+  <div class="summary-total">
+    <div class="summary-label">Saldo Bersih</div>
+    <div class="summary-amount" id="totalSaldo">Rp 0</div>
+  </div>
+  <div class="summary-card income">
+    <div class="summary-label">↑ Pemasukan</div>
+    <div class="summary-amount" id="totalIn">Rp 0</div>
+  </div>
+  <div class="summary-card expense">
+    <div class="summary-label">↓ Pengeluaran</div>
+    <div class="summary-amount" id="totalOut">Rp 0</div>
+  </div>
 </div>
 
+<!-- Mode toggle -->
+<div class="mode-toggle">
+  <button class="mode-btn active income" onclick="setMode('income')">↑ Pemasukan</button>
+  <button class="mode-btn expense" onclick="setMode('expense')">↓ Pengeluaran</button>
+</div>
+
+<!-- Denomination -->
+<div class="section-label">Pilih Nominal</div>
+<div class="denom-grid" id="denomGrid"></div>
+
+<!-- Input Panel -->
+<div class="input-panel" id="inputPanel">
+  <div class="panel-info" id="panelInfo"></div>
+  <div class="qty-row">
+    <span class="qty-label">Jumlah lembar/keping:</span>
+  </div>
+  <input type="number" class="qty-input" id="qtyInput" placeholder="Contoh: 9" min="1" oninput="updatePreview()" />
+  <input type="text" class="desc-input" id="descInput" placeholder="Keterangan (opsional)..." />
+  <div class="calc-preview">
+    <div style="font-size:0.7rem;">Hasil kalkulasi</div>
+    <div class="calc-result" id="calcResult">—</div>
+  </div>
+  <button class="confirm-btn income" id="confirmBtn" onclick="confirmEntry()">✓ KONFIRMASI</button>
+</div>
+
+<!-- History -->
+<div class="history-header">
+  <div class="section-label" style="margin-bottom:0">Riwayat Transaksi</div>
+  <button class="clear-all-btn" onclick="confirmClearAll()">🗑 Hapus Semua</button>
+</div>
+<div class="history-list" id="historyList"></div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>⚠️ Konfirmasi Hapus</h3>
+    <p id="modalMsg">Apakah kamu yakin ingin menghapus semua riwayat? Tindakan ini tidak bisa dibatalkan.</p>
+    <div class="modal-btns">
+      <button class="cancel-modal" onclick="closeModal()">Batal</button>
+      <button class="confirm-modal" id="modalConfirmBtn">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
 <script>
-    let currentNominal = 0;
-    let transactions = JSON.parse(localStorage.getItem('my_money_data')) || [];
+const DENOMS = [1000,2000,5000,10000,20000,50000,100000];
+const LABELS = ['1K','2K','5K','10K','20K','50K','100K'];
 
-    function updateUI() {
-        const list = document.getElementById('history-list');
-        const totalDisplay = document.getElementById('total-amount');
-        list.innerHTML = '';
-        let total = 0;
+let mode = 'income';
+let selectedDenom = null;
+let history = JSON.parse(localStorage.getItem('cashHistory') || '[]');
+let deleteTargetId = null;
+let clearAllPending = false;
 
-        transactions.forEach((item, index) => {
-            total += item.subtotal;
-            const li = document.createElement('li');
-            li.className = 'history-item';
-            li.innerHTML = `
-                <div>
-                    <strong>Rp ${item.nominal.toLocaleString()}</strong> x ${item.qty}<br>
-                    <small>Subtotal: Rp ${item.subtotal.toLocaleString()}</small>
-                </div>
-                <button class="btn-delete" onclick="deleteItem(${index})">Hapus</button>
-            `;
-            list.appendChild(li);
-        });
+function fmt(n) {
+  return 'Rp ' + n.toLocaleString('id-ID');
+}
 
-        totalDisplay.innerText = total.toLocaleString();
-        localStorage.setItem('my_money_data', JSON.stringify(transactions));
-    }
+function formatShort(n) {
+  if (n >= 1000000) return (n/1000000).toFixed(n%1000000===0?0:1)+'jt';
+  if (n >= 1000) return (n/1000).toFixed(n%1000===0?0:1)+'rb';
+  return n;
+}
 
-    function selectMoney(val) {
-        currentNominal = val;
-        document.getElementById('selected-label').innerText = `Jumlah lembar Rp ${val.toLocaleString()}:`;
-        document.getElementById('input-area').style.display = 'block';
-        document.getElementById('qty-input').focus();
-    }
+// Build denom buttons
+const grid = document.getElementById('denomGrid');
+DENOMS.forEach((d,i) => {
+  const btn = document.createElement('button');
+  btn.className = 'denom-btn';
+  btn.id = 'denom-'+d;
+  btn.innerHTML = `<span class="denom-val">${LABELS[i]}</span><span class="denom-label">Rp ${d>=1000?d/1000+'rb':d}</span>`;
+  btn.onclick = () => selectDenom(d);
+  grid.appendChild(btn);
+});
 
-    function addTransaction() {
-        const qty = parseInt(document.getElementById('qty-input').value);
-        if (!qty || qty <= 0) {
-            alert('Masukkan jumlah yang valid!');
-            return;
-        }
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.mode-btn.' + m).classList.add('active');
+  selectedDenom = null;
+  document.querySelectorAll('.denom-btn').forEach(b => { b.className = 'denom-btn'; });
+  document.getElementById('inputPanel').classList.remove('visible');
+  document.getElementById('qtyInput').value = '';
+  document.getElementById('descInput').value = '';
+  document.getElementById('calcResult').textContent = '—';
+}
 
-        const subtotal = currentNominal * qty;
-        transactions.push({
-            nominal: currentNominal,
-            qty: qty,
-            subtotal: subtotal
-        });
+function selectDenom(d) {
+  selectedDenom = d;
+  document.querySelectorAll('.denom-btn').forEach(b => { b.className = 'denom-btn'; });
+  const btn = document.getElementById('denom-'+d);
+  btn.className = 'denom-btn selected ' + mode;
 
-        document.getElementById('qty-input').value = '';
-        document.getElementById('input-area').style.display = 'none';
-        updateUI();
-    }
+  const panel = document.getElementById('inputPanel');
+  panel.classList.add('visible');
 
-    function deleteItem(index) {
-        transactions.splice(index, 1);
-        updateUI();
-    }
+  const confirmBtn = document.getElementById('confirmBtn');
+  confirmBtn.className = 'confirm-btn ' + mode;
+  confirmBtn.textContent = mode === 'income' ? '✓ KONFIRMASI PEMASUKAN' : '✓ KONFIRMASI PENGELUARAN';
 
-    function clearAll() {
-        if (confirm('Apakah Anda yakin ingin menghapus SEMUA riwayat?')) {
-            transactions = [];
-            updateUI();
-        }
-    }
+  document.getElementById('panelInfo').innerHTML =
+    `Nominal dipilih: <strong>${fmt(d)}</strong><br>Isi jumlah lembar/keping di bawah:`;
 
-    // Inisialisasi awal
-    updateUI();
+  document.getElementById('calcResult').className = 'calc-result ' + mode;
+  document.getElementById('qtyInput').value = '';
+  document.getElementById('calcResult').textContent = '—';
+  document.getElementById('qtyInput').focus();
+}
+
+function updatePreview() {
+  const qty = parseInt(document.getElementById('qtyInput').value) || 0;
+  const total = qty * (selectedDenom || 0);
+  document.getElementById('calcResult').textContent = qty > 0 ? `${qty} × ${fmt(selectedDenom)} = ${fmt(total)}` : '—';
+}
+
+function confirmEntry() {
+  const qty = parseInt(document.getElementById('qtyInput').value);
+  if (!selectedDenom) return showToast('Pilih nominal dulu!');
+  if (!qty || qty < 1) return showToast('Isi jumlah yang valid!');
+  const total = qty * selectedDenom;
+  const desc = document.getElementById('descInput').value.trim() || (mode === 'income' ? 'Pemasukan' : 'Pengeluaran');
+  const entry = {
+    id: Date.now(),
+    mode,
+    denom: selectedDenom,
+    qty,
+    total,
+    desc,
+    time: new Date().toLocaleString('id-ID', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+  };
+  history.unshift(entry);
+  save();
+  renderHistory();
+  updateSummary();
+  showToast(mode === 'income' ? `+${fmt(total)} ditambahkan!` : `-${fmt(total)} dicatat!`);
+  document.getElementById('qtyInput').value = '';
+  document.getElementById('descInput').value = '';
+  document.getElementById('calcResult').textContent = '—';
+}
+
+function save() {
+  localStorage.setItem('cashHistory', JSON.stringify(history));
+}
+
+function updateSummary() {
+  const totalIn = history.filter(h=>h.mode==='income').reduce((a,b)=>a+b.total,0);
+  const totalOut = history.filter(h=>h.mode==='expense').reduce((a,b)=>a+b.total,0);
+  const saldo = totalIn - totalOut;
+  document.getElementById('totalIn').textContent = fmt(totalIn);
+  document.getElementById('totalOut').textContent = fmt(totalOut);
+  const saldoEl = document.getElementById('totalSaldo');
+  saldoEl.textContent = fmt(Math.abs(saldo)) + (saldo < 0 ? ' (minus)' : '');
+  saldoEl.className = 'summary-amount' + (saldo > 0 ? ' positive' : saldo < 0 ? ' negative' : '');
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (history.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>Belum ada transaksi.<br>Mulai catat pemasukan atau pengeluaranmu!</p></div>`;
+    return;
+  }
+  list.innerHTML = history.map(h => `
+    <div class="history-item ${h.mode}" id="item-${h.id}">
+      <div class="history-icon">${h.mode==='income'?'💚':'❤️'}</div>
+      <div class="history-body">
+        <div class="h-top">
+          <span class="h-amount">${h.mode==='income'?'+':'-'}${fmt(h.total)}</span>
+        </div>
+        <div class="h-desc">${h.desc}</div>
+        <div class="h-meta">
+          <span>${fmt(h.denom)} × ${h.qty}</span>
+          <span>${h.time}</span>
+        </div>
+      </div>
+      <button class="delete-btn" onclick="confirmDelete(${h.id})" title="Hapus">✕</button>
+    </div>
+  `).join('');
+}
+
+function confirmDelete(id) {
+  deleteTargetId = id;
+  clearAllPending = false;
+  const item = history.find(h=>h.id===id);
+  document.getElementById('modalMsg').textContent = `Hapus transaksi "${item.desc}" sebesar ${fmt(item.total)}?`;
+  document.getElementById('modalConfirmBtn').onclick = () => { deleteEntry(id); closeModal(); };
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function deleteEntry(id) {
+  history = history.filter(h=>h.id!==id);
+  save();
+  renderHistory();
+  updateSummary();
+  showToast('Transaksi dihapus.');
+}
+
+function confirmClearAll() {
+  if (history.length === 0) return showToast('Tidak ada riwayat untuk dihapus.');
+  clearAllPending = true;
+  document.getElementById('modalMsg').textContent = `Apakah kamu yakin ingin menghapus SEMUA ${history.length} riwayat transaksi? Tindakan ini tidak bisa dibatalkan!`;
+  document.getElementById('modalConfirmBtn').onclick = () => { clearAll(); closeModal(); };
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function clearAll() {
+  history = [];
+  save();
+  renderHistory();
+  updateSummary();
+  showToast('Semua riwayat dihapus.');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+document.getElementById('modalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+// Init
+updateSummary();
+renderHistory();
 </script>
-
 </body>
 </html>
