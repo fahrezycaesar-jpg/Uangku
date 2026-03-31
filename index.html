@@ -1,736 +1,264 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dompet Catatan</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<style>
-  :root {
-    --bg: #0d0f14;
-    --surface: #13161e;
-    --card: #1a1e28;
-    --card2: #1f2433;
-    --border: #2a2f3f;
-    --in: #22c55e;
-    --in-dim: #16a34a33;
-    --out: #f97316;
-    --out-dim: #ea580c33;
-    --accent: #6366f1;
-    --accent-dim: #6366f122;
-    --text: #e8eaf0;
-    --muted: #7b829a;
-    --mono: 'DM Mono', monospace;
-    --sans: 'Plus Jakarta Sans', sans-serif;
-  }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg); color: var(--text);
-    font-family: var(--sans); min-height: 100vh; overflow-x: hidden;
-  }
-  body::before {
-    content: ''; position: fixed; inset: 0;
-    background-image:
-      linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
-    background-size: 40px 40px; pointer-events: none; z-index: 0;
-  }
-  .app { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 24px 16px 80px; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catatan Keuangan Digital</title>
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --glow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
 
-  /* HEADER */
-  .header { text-align: center; margin-bottom: 28px; padding-top: 16px; }
-  .header-icon { font-size: 2rem; margin-bottom: 8px; }
-  .header h1 {
-    font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px;
-    background: linear-gradient(135deg, #e8eaf0 0%, #6366f1 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  }
-  .header p { font-size: 0.75rem; color: var(--muted); margin-top: 4px; letter-spacing: 1px; }
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-attachment: fixed;
+            color: white;
+            min-height: 100vh;
+        }
 
-  /* SUMMARY */
-  .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-  .sum-card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 16px; padding: 16px; position: relative; overflow: hidden;
-  }
-  .sum-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
-  .sum-card.in::before   { background: linear-gradient(90deg, var(--in), transparent); }
-  .sum-card.out::before  { background: linear-gradient(90deg, var(--out), transparent); }
-  .sum-card.saldo        { grid-column: span 2; }
-  .sum-card.saldo::before{ background: linear-gradient(90deg, var(--accent), transparent); }
-  .sum-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
-  .sum-card.in   .sum-label { color: var(--in); }
-  .sum-card.out  .sum-label { color: var(--out); }
-  .sum-card.saldo .sum-label{ color: var(--accent); }
-  .sum-amount { font-family: var(--mono); font-size: 1.2rem; font-weight: 500; }
-  .sum-card.saldo .sum-amount { font-size: 1.45rem; }
-  .sum-amount.positive { color: var(--in); }
-  .sum-amount.negative { color: var(--out); }
+        .container {
+            max-width: 500px;
+            margin: auto;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: var(--glow);
+        }
 
-  /* SHARE BUTTON */
-  .share-btn {
-    width: 100%; padding: 13px; background: var(--card2);
-    border: 1.5px solid var(--border); border-radius: 14px;
-    font-family: var(--sans); font-size: 0.85rem; font-weight: 700;
-    color: var(--muted); cursor: pointer; display: flex; align-items: center;
-    justify-content: center; gap: 8px; transition: all 0.2s; margin-bottom: 20px;
-  }
-  .share-btn:hover { border-color: var(--accent); color: var(--text); }
+        h2 { text-align: center; margin-bottom: 25px; }
 
-  /* TAB */
-  .tab-wrap {
-    display: flex; background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; padding: 4px; margin-bottom: 20px; gap: 4px;
-  }
-  .tab-btn {
-    flex: 1; padding: 10px; border: none; border-radius: 9px; cursor: pointer;
-    font-family: var(--sans); font-size: 0.82rem; font-weight: 700;
-    transition: all 0.25s; background: transparent; color: var(--muted);
-  }
-  .tab-btn.active-in  { background: var(--in-dim);  color: var(--in); }
-  .tab-btn.active-out { background: var(--out-dim); color: var(--out); }
+        .total-box {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border: 1px solid var(--glass-border);
+        }
 
-  /* DENOM */
-  .section-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
-  .denom-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 24px; }
-  .denom-btn {
-    background: var(--card); border: 1.5px solid var(--border); border-radius: 12px;
-    padding: 12px 6px; cursor: pointer; font-family: var(--sans); font-size: 0.7rem;
-    font-weight: 700; color: var(--muted); text-align: center; transition: all 0.2s;
-    position: relative; overflow: hidden;
-  }
-  .denom-btn:hover { border-color: var(--accent); color: var(--text); transform: translateY(-2px); }
-  .denom-btn.sel-in  { border-color: var(--in);  background: var(--in-dim);  color: var(--in);  transform: translateY(-2px); }
-  .denom-btn.sel-out { border-color: var(--out); background: var(--out-dim); color: var(--out); transform: translateY(-2px); }
-  .denom-icon { font-size: 1.1rem; display: block; margin-bottom: 4px; }
-  .denom-val  { display: block; white-space: nowrap; }
+        .money-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
 
-  /* INPUT SECTION */
-  .input-section {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 16px; padding: 20px; margin-bottom: 20px;
-    display: none; animation: slideIn 0.25s ease;
-  }
-  .input-section.visible { display: block; }
-  @keyframes slideIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        .money-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-weight: 600;
+        }
 
-  .input-info {
-    display: flex; align-items: center; gap: 10px;
-    background: var(--card2); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;
-  }
-  .input-info-icon { font-size: 1.3rem; }
-  .info-lbl { font-size: 0.9rem; font-weight: 700; color: var(--text); display: block; }
-  .info-sub { font-size: 0.75rem; color: var(--muted); }
+        .money-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
 
-  .field-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 6px; }
-  .input-field {
-    width: 100%; background: var(--card2); border: 1.5px solid var(--border);
-    border-radius: 10px; padding: 12px 14px; font-family: var(--mono);
-    font-size: 1.1rem; font-weight: 500; color: var(--text); outline: none;
-    transition: border-color 0.2s; margin-bottom: 12px; -moz-appearance: textfield;
-  }
-  .input-field::-webkit-inner-spin-button,
-  .input-field::-webkit-outer-spin-button { -webkit-appearance: none; }
-  .input-field:focus { border-color: var(--accent); }
+        .history-section {
+            margin-top: 30px;
+        }
 
-  .note-field {
-    width: 100%; background: var(--card2); border: 1.5px solid var(--border);
-    border-radius: 10px; padding: 10px 14px; font-family: var(--sans);
-    font-size: 0.85rem; color: var(--text); outline: none;
-    transition: border-color 0.2s; resize: none; height: 60px; margin-bottom: 12px;
-  }
-  .note-field:focus { border-color: var(--accent); }
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
 
-  .preview-total {
-    background: var(--card2); border-radius: 10px; padding: 12px 14px;
-    display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
-  }
-  .preview-total span { font-size: 0.78rem; color: var(--muted); }
-  .preview-total strong { font-family: var(--mono); font-size: 1rem; color: var(--text); }
+        .history-list {
+            list-style: none;
+            padding: 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
 
-  .confirm-btn {
-    width: 100%; padding: 14px; border: none; border-radius: 12px;
-    font-family: var(--sans); font-size: 0.9rem; font-weight: 800; cursor: pointer; transition: all 0.2s;
-  }
-  .confirm-btn.in-btn  { background: var(--in);  color: #0d0f14; }
-  .confirm-btn.out-btn { background: var(--out); color: #0d0f14; }
-  .confirm-btn:hover  { filter: brightness(1.1); transform: translateY(-1px); }
-  .confirm-btn:active { transform: scale(0.98); }
+        .history-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--glass-border);
+        }
 
-  /* HISTORY */
-  .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-  .lock-badge {
-    font-size: 0.68rem; color: var(--muted); background: var(--card);
-    border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px;
-    display: flex; align-items: center; gap: 4px;
-  }
-  .history-list { display: flex; flex-direction: column; gap: 8px; }
-  .history-empty { text-align: center; padding: 32px; color: var(--muted); font-size: 0.85rem; }
-  .history-empty .ei { font-size: 2rem; display: block; margin-bottom: 8px; }
+        .btn-delete {
+            background: #ff4d4d;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
 
-  .hist-item {
-    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
-    padding: 14px 16px; display: flex; align-items: center; gap: 12px;
-    animation: slideIn 0.25s ease; position: relative; overflow: hidden;
-  }
-  .hist-item::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; }
-  .hist-item.in::before  { background: var(--in); }
-  .hist-item.out::before { background: var(--out); }
-  .hist-icon   { font-size: 1.4rem; flex-shrink: 0; }
-  .hist-info   { flex: 1; min-width: 0; }
-  .hist-name   { font-size: 0.85rem; font-weight: 700; }
-  .hist-meta   { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
-  .hist-note   { font-size: 0.7rem; color: var(--muted); font-style: italic; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .hist-amount { font-family: var(--mono); font-size: 0.95rem; font-weight: 500; text-align: right; flex-shrink: 0; }
-  .hist-amount.in  { color: var(--in); }
-  .hist-amount.out { color: var(--out); }
+        .btn-clear-all {
+            background: #ff3e3e;
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
 
-  /* RIPPLE */
-  .ripple {
-    position: absolute; border-radius: 50%; width: 60px; height: 60px;
-    transform: scale(0); animation: rpl 0.5s linear;
-    background: rgba(255,255,255,0.1); pointer-events: none;
-  }
-  @keyframes rpl { to { transform: scale(4); opacity: 0; } }
+        /* Modal Simple */
+        #input-area {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            animation: fadeIn 0.3s;
+        }
 
-  /* TOAST */
-  .toast {
-    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
-    background: var(--card2); border: 1px solid var(--border); border-radius: 12px;
-    padding: 12px 20px; font-size: 0.82rem; font-weight: 600;
-    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); z-index: 100; white-space: nowrap;
-  }
-  .toast.show   { transform: translateX(-50%) translateY(0); }
-  .toast.t-in   { border-color: var(--in);     color: var(--in); }
-  .toast.t-out  { border-color: var(--out);    color: var(--out); }
-  .toast.t-info { border-color: var(--accent); color: var(--accent); }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            box-sizing: border-box;
+        }
 
-  /* ============================
-     STRUK MODAL
-  ============================= */
-  .modal-bg {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.78);
-    display: none; align-items: center; justify-content: center;
-    z-index: 200; padding: 20px; backdrop-filter: blur(6px);
-  }
-  .modal-bg.open { display: flex; }
-  .modal-box {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 24px; width: 100%; max-width: 360px;
-    overflow: hidden; animation: popUp 0.3s cubic-bezier(0.34,1.2,0.64,1);
-    max-height: 92vh; display: flex; flex-direction: column;
-  }
-  @keyframes popUp { from { transform:scale(0.85); opacity:0; } to { transform:scale(1); opacity:1; } }
+        .confirm-btn {
+            width: 100%;
+            padding: 12px;
+            background: #4caf50;
+            border: none;
+            color: white;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
 
-  .modal-header {
-    padding: 16px 20px; display: flex; align-items: center;
-    justify-content: space-between; border-bottom: 1px solid var(--border); flex-shrink: 0;
-  }
-  .modal-header span { font-size: 0.9rem; font-weight: 800; }
-  .modal-close {
-    background: var(--card2); border: none; color: var(--muted);
-    width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 0.85rem;
-    display: flex; align-items: center; justify-content: center; font-family: var(--sans);
-  }
-  .modal-scroll { overflow-y: auto; flex: 1; padding: 16px; }
-  .modal-actions { display: flex; gap: 10px; padding: 12px 16px 16px; flex-shrink: 0; border-top: 1px solid var(--border); }
-  .modal-dl-btn {
-    flex: 1; padding: 13px; border: none; border-radius: 12px; background: var(--accent); color: #fff;
-    font-family: var(--sans); font-size: 0.85rem; font-weight: 800; cursor: pointer; transition: all 0.2s;
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-  }
-  .modal-dl-btn:hover { filter: brightness(1.1); }
-  .modal-cancel-btn {
-    flex: 1; padding: 13px; border: 1.5px solid var(--border); border-radius: 12px;
-    background: transparent; color: var(--muted); font-family: var(--sans);
-    font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
-  }
-  .modal-cancel-btn:hover { border-color: var(--text); color: var(--text); }
-
-  /* ============================
-     STRUK / RECEIPT DESIGN
-  ============================= */
-  #struk-wrap {
-    background: #ffffff; border-radius: 12px; overflow: hidden;
-    font-family: 'Plus Jakarta Sans', sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-  }
-  .struk-head {
-    background: linear-gradient(160deg, #0d0f14 0%, #1f2433 100%);
-    padding: 24px 20px 20px; text-align: center; position: relative; overflow: hidden;
-  }
-  .struk-head::before {
-    content:''; position:absolute; top:-30px; right:-30px;
-    width: 110px; height: 110px; background: rgba(99,102,241,0.18); border-radius: 50%;
-  }
-  .struk-head::after {
-    content:''; position:absolute; bottom:-20px; left:-20px;
-    width:80px; height:80px; background:rgba(34,197,94,0.1); border-radius:50%;
-  }
-  .struk-brand-icon  { font-size: 2rem; display: block; margin-bottom: 6px; position: relative; z-index: 1; }
-  .struk-brand-title { color: #fff; font-size: 1.1rem; font-weight: 800; position: relative; z-index: 1; letter-spacing: -0.3px; }
-  .struk-brand-sub   { color: rgba(255,255,255,0.45); font-size: 0.62rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 2px; position: relative; z-index: 1; }
-
-  .struk-datetime {
-    background: #f4f6f9; padding: 9px 20px;
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-    font-size: 0.68rem; color: #777; font-weight: 600;
-    border-bottom: 1.5px dashed #e0e4ea;
-  }
-
-  .struk-body { padding: 16px 18px; }
-
-  .struk-saldo-card {
-    background: linear-gradient(135deg, #0d0f14 0%, #1a1e28 100%);
-    border-radius: 12px; padding: 16px 18px; text-align: center; margin-bottom: 16px;
-  }
-  .struk-saldo-label  { color: rgba(255,255,255,0.45); font-size: 0.58rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
-  .struk-saldo-amount { font-family: 'DM Mono', monospace; font-size: 1.55rem; font-weight: 500; color: #fff; letter-spacing: -1px; }
-  .struk-saldo-amount.s-pos { color: #4ade80; }
-  .struk-saldo-amount.s-neg { color: #fb923c; }
-
-  .struk-row-group { background: #f9fafb; border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
-  .struk-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 11px 14px;
-  }
-  .struk-row + .struk-row { border-top: 1px solid #eef0f4; }
-  .struk-row-left { display: flex; align-items: center; gap: 8px; }
-  .struk-row-ic   { font-size: 1rem; }
-  .struk-row-lbl  { font-size: 0.78rem; font-weight: 600; color: #555; }
-  .struk-row-val  { font-family: 'DM Mono', monospace; font-size: 0.85rem; font-weight: 500; }
-  .struk-row-val.rv-in  { color: #16a34a; }
-  .struk-row-val.rv-out { color: #ea580c; }
-
-  .struk-stats-row {
-    display: flex; justify-content: space-around;
-    background: #f9fafb; border-radius: 10px; padding: 12px 8px; margin-bottom: 14px;
-  }
-  .struk-stat { text-align: center; }
-  .struk-stat-num   { font-size: 1.25rem; font-weight: 800; color: #1a1e28; }
-  .struk-stat-label { font-size: 0.58rem; color: #999; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 2px; }
-
-  .struk-divider-dash { border: none; border-top: 1.5px dashed #dde1ea; margin: 14px 0; }
-
-  .struk-jam-box {
-    background: #f0f4ff; border-radius: 10px; padding: 10px 14px;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .struk-jam-ic   { font-size: 1.1rem; }
-  .struk-jam-lbl  { font-size: 0.65rem; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-  .struk-jam-val  { font-size: 0.85rem; font-weight: 800; color: #3730a3; margin-top: 1px; }
-
-  .struk-foot {
-    background: #f4f6f9; border-top: 1.5px dashed #dde1ea;
-    padding: 12px 18px; text-align: center;
-  }
-  .struk-foot-sub   { font-size: 0.6rem; color: #bbb; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
-  .struk-foot-brand { font-size: 0.8rem; font-weight: 800; color: #1a1e28; margin-top: 2px; }
-
-  /* GENERATING */
-  .gen-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.82);
-    display: none; align-items: center; justify-content: center;
-    z-index: 999; flex-direction: column; gap: 14px;
-  }
-  .gen-overlay.show { display: flex; }
-  .gen-overlay p { color: #fff; font-size: 0.9rem; font-weight: 600; }
-  .spinner {
-    width: 40px; height: 40px; border: 3px solid rgba(99,102,241,0.3);
-    border-top-color: #6366f1; border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-</style>
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
 </head>
 <body>
 
-<div class="app">
-
-  <!-- HEADER -->
-  <div class="header">
-    <div class="header-icon">💰</div>
-    <h1>Dompet Catatan</h1>
-    <p>CATAT · HITUNG · PANTAU</p>
-  </div>
-
-  <!-- SUMMARY -->
-  <div class="summary">
-    <div class="sum-card in">
-      <div class="sum-label">📥 Pemasukan</div>
-      <div class="sum-amount" id="total-in">Rp 0</div>
+<div class="container">
+    <h2>Catatan Keuangan</h2>
+    
+    <div class="total-box">
+        Total: Rp <span id="total-amount">0</span>
     </div>
-    <div class="sum-card out">
-      <div class="sum-label">📤 Pengeluaran</div>
-      <div class="sum-amount" id="total-out">Rp 0</div>
-    </div>
-    <div class="sum-card saldo">
-      <div class="sum-label">⚖️ Saldo Bersih</div>
-      <div class="sum-amount" id="total-saldo">Rp 0</div>
-    </div>
-  </div>
 
-  <!-- SHARE -->
-  <button class="share-btn" onclick="openStruk()">
-    🧾 Bagikan Ringkasan — Simpan Sebagai Struk Foto
-  </button>
-
-  <!-- TAB -->
-  <div class="tab-wrap">
-    <button class="tab-btn active-in" id="tab-in"  onclick="setMode('in')">📥 Pemasukan</button>
-    <button class="tab-btn"           id="tab-out" onclick="setMode('out')">📤 Pengeluaran</button>
-  </div>
-
-  <!-- DENOM -->
-  <div class="section-label">Pilih Nominal Uang</div>
-  <div class="denom-grid" id="denom-grid"></div>
-
-  <!-- INPUT -->
-  <div class="input-section" id="input-section">
-    <div class="input-info">
-      <div class="input-info-icon" id="info-icon">💵</div>
-      <div class="input-info-text">
-        <strong class="info-lbl" id="info-label">Rp 1.000</strong>
-        <span class="info-sub" id="info-desc">Masukkan jumlah lembar</span>
-      </div>
+    <div class="money-grid">
+        <button class="money-btn" onclick="selectMoney(1000)">1.000</button>
+        <button class="money-btn" onclick="selectMoney(2000)">2.000</button>
+        <button class="money-btn" onclick="selectMoney(5000)">5.000</button>
+        <button class="money-btn" onclick="selectMoney(10000)">10.000</button>
+        <button class="money-btn" onclick="selectMoney(20000)">20.000</button>
+        <button class="money-btn" onclick="selectMoney(50000)">50.000</button>
+        <button class="money-btn" onclick="selectMoney(100000)">100.000</button>
     </div>
-    <label class="field-label">Jumlah Lembar / Keping</label>
-    <input type="number" class="input-field" id="qty-input" placeholder="0" min="1"
-      oninput="updatePreview()" onkeydown="if(event.key==='Enter') confirmEntry()">
-    <div class="preview-total">
-      <span>Total nominal</span>
-      <strong id="preview-total">Rp 0</strong>
-    </div>
-    <label class="field-label">Catatan (opsional)</label>
-    <textarea class="note-field" id="note-input" placeholder="e.g. Beli makan siang..."></textarea>
-    <button class="confirm-btn in-btn" id="confirm-btn" onclick="confirmEntry()">✓ Konfirmasi Pemasukan</button>
-  </div>
 
-  <!-- HISTORY -->
-  <div class="history-header">
-    <div class="section-label" style="margin:0">Riwayat Transaksi</div>
-    <div class="lock-badge">🔒 Permanen</div>
-  </div>
-  <div class="history-list" id="history-list">
-    <div class="history-empty">
-      <span class="ei">📋</span>
-      Belum ada transaksi.<br>Mulai catat pemasukan atau pengeluaran!
+    <div id="input-area">
+        <p id="selected-label">Jumlah lembar Rp 1.000:</p>
+        <input type="number" id="qty-input" placeholder="Contoh: 9" min="1">
+        <button class="confirm-btn" onclick="addTransaction()">Konfirmasi</button>
     </div>
-  </div>
+
+    <div class="history-section">
+        <div class="history-header">
+            <h3>Riwayat</h3>
+            <button class="btn-clear-all" onclick="clearAll()">Hapus Semua</button>
+        </div>
+        <ul id="history-list" class="history-list"></ul>
+    </div>
 </div>
-
-<!-- ============================
-     STRUK MODAL
-============================= -->
-<div class="modal-bg" id="modal-bg" onclick="bgClose(event)">
-  <div class="modal-box" id="modal-box">
-    <div class="modal-header">
-      <span>🧾 Pratinjau Struk</span>
-      <button class="modal-close" onclick="closeStruk()">✕</button>
-    </div>
-    <div class="modal-scroll">
-      <div id="struk-wrap">
-
-        <!-- HEAD -->
-        <div class="struk-head">
-          <span class="struk-brand-icon">💰</span>
-          <div class="struk-brand-title">Dompet Catatan</div>
-          <div class="struk-brand-sub">Ringkasan Keuangan</div>
-        </div>
-
-        <!-- DATETIME -->
-        <div class="struk-datetime" id="struk-datetime">
-          📅 — &nbsp;·&nbsp; 🕐 —
-        </div>
-
-        <div class="struk-body">
-
-          <!-- SALDO -->
-          <div class="struk-saldo-card">
-            <div class="struk-saldo-label">Saldo Bersih</div>
-            <div class="struk-saldo-amount" id="struk-saldo">Rp 0</div>
-          </div>
-
-          <!-- IN / OUT -->
-          <div class="struk-row-group">
-            <div class="struk-row">
-              <div class="struk-row-left">
-                <span class="struk-row-ic">📥</span>
-                <span class="struk-row-lbl">Total Pemasukan</span>
-              </div>
-              <span class="struk-row-val rv-in" id="struk-in">Rp 0</span>
-            </div>
-            <div class="struk-row">
-              <div class="struk-row-left">
-                <span class="struk-row-ic">📤</span>
-                <span class="struk-row-lbl">Total Pengeluaran</span>
-              </div>
-              <span class="struk-row-val rv-out" id="struk-out">Rp 0</span>
-            </div>
-          </div>
-
-          <!-- STATS -->
-          <div class="struk-stats-row">
-            <div class="struk-stat">
-              <div class="struk-stat-num"   id="struk-tx-total">0</div>
-              <div class="struk-stat-label">Transaksi</div>
-            </div>
-            <div class="struk-stat">
-              <div class="struk-stat-num"   id="struk-tx-in">0</div>
-              <div class="struk-stat-label">Pemasukan</div>
-            </div>
-            <div class="struk-stat">
-              <div class="struk-stat-num"   id="struk-tx-out">0</div>
-              <div class="struk-stat-label">Pengeluaran</div>
-            </div>
-          </div>
-
-          <hr class="struk-divider-dash">
-
-          <!-- JAM STUDI / WAKTU PENGGUNAAN -->
-          <div class="struk-jam-box">
-            <span class="struk-jam-ic">⏱️</span>
-            <div>
-              <div class="struk-jam-lbl">Jam Studi / Sesi Aktif</div>
-              <div class="struk-jam-val" id="struk-jam-studi">0 jam 0 menit</div>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- FOOT -->
-        <div class="struk-foot">
-          <div class="struk-foot-sub">Dicetak otomatis oleh</div>
-          <div class="struk-foot-brand">💰 Dompet Catatan</div>
-        </div>
-
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="modal-dl-btn" onclick="downloadStruk()">📥 Simpan Foto</button>
-      <button class="modal-cancel-btn" onclick="closeStruk()">Tutup</button>
-    </div>
-  </div>
-</div>
-
-<!-- GENERATING -->
-<div class="gen-overlay" id="gen-overlay">
-  <div class="spinner"></div>
-  <p>Membuat struk...</p>
-</div>
-
-<!-- TOAST -->
-<div class="toast" id="toast"></div>
 
 <script>
-const DENOMS = [
-  {val:1000,   label:'1.000',   icon:'💵'},
-  {val:2000,   label:'2.000',   icon:'💵'},
-  {val:5000,   label:'5.000',   icon:'💴'},
-  {val:10000,  label:'10.000',  icon:'💴'},
-  {val:20000,  label:'20.000',  icon:'💶'},
-  {val:50000,  label:'50.000',  icon:'💶'},
-  {val:100000, label:'100.000', icon:'💷'},
-];
+    let currentNominal = 0;
+    let transactions = JSON.parse(localStorage.getItem('my_money_data')) || [];
 
-let mode = 'in';
-let selectedDenom = null;
-let transactions = JSON.parse(localStorage.getItem('dc_txs_v3') || '[]');
-const sessionStart = Date.now(); // track session time
+    function updateUI() {
+        const list = document.getElementById('history-list');
+        const totalDisplay = document.getElementById('total-amount');
+        list.innerHTML = '';
+        let total = 0;
 
-/* ====== MODE ====== */
-function setMode(m) {
-  mode = m; selectedDenom = null;
-  document.getElementById('input-section').classList.remove('visible');
-  document.getElementById('qty-input').value = '';
-  document.getElementById('note-input').value = '';
-  updatePreview();
-  document.getElementById('tab-in').className  = 'tab-btn' + (m==='in'  ? ' active-in'  : '');
-  document.getElementById('tab-out').className = 'tab-btn' + (m==='out' ? ' active-out' : '');
-  renderDenoms();
-}
+        transactions.forEach((item, index) => {
+            total += item.subtotal;
+            const li = document.createElement('li');
+            li.className = 'history-item';
+            li.innerHTML = `
+                <div>
+                    <strong>Rp ${item.nominal.toLocaleString()}</strong> x ${item.qty}<br>
+                    <small>Subtotal: Rp ${item.subtotal.toLocaleString()}</small>
+                </div>
+                <button class="btn-delete" onclick="deleteItem(${index})">Hapus</button>
+            `;
+            list.appendChild(li);
+        });
 
-/* ====== DENOM ====== */
-function renderDenoms() {
-  const g = document.getElementById('denom-grid');
-  g.innerHTML = '';
-  DENOMS.forEach(d => {
-    const b = document.createElement('button');
-    b.className = 'denom-btn' + (selectedDenom===d.val ? ` sel-${mode}` : '');
-    b.innerHTML = `<span class="denom-icon">${d.icon}</span><span class="denom-val">Rp ${d.label}</span>`;
-    b.onclick = e => { ripple(b, e); selectDenom(d); };
-    g.appendChild(b);
-  });
-}
+        totalDisplay.innerText = total.toLocaleString();
+        localStorage.setItem('my_money_data', JSON.stringify(transactions));
+    }
 
-function selectDenom(d) {
-  selectedDenom = d.val; renderDenoms();
-  document.getElementById('info-icon').textContent  = d.icon;
-  document.getElementById('info-label').textContent = 'Rp ' + d.label;
-  document.getElementById('info-desc').textContent  = `Masukkan jumlah lembar Rp ${d.label}`;
-  document.getElementById('confirm-btn').textContent = mode==='in' ? '✓ Konfirmasi Pemasukan' : '✓ Konfirmasi Pengeluaran';
-  document.getElementById('confirm-btn').className   = 'confirm-btn ' + (mode==='in' ? 'in-btn' : 'out-btn');
-  document.getElementById('input-section').classList.add('visible');
-  document.getElementById('qty-input').value = '';
-  updatePreview();
-  setTimeout(() => document.getElementById('qty-input').focus(), 80);
-}
+    function selectMoney(val) {
+        currentNominal = val;
+        document.getElementById('selected-label').innerText = `Jumlah lembar Rp ${val.toLocaleString()}:`;
+        document.getElementById('input-area').style.display = 'block';
+        document.getElementById('qty-input').focus();
+    }
 
-function ripple(btn, e) {
-  const r = document.createElement('span'); r.className = 'ripple';
-  const rc = btn.getBoundingClientRect();
-  r.style.left = (e.clientX - rc.left - 30) + 'px';
-  r.style.top  = (e.clientY - rc.top  - 30) + 'px';
-  btn.appendChild(r); setTimeout(() => r.remove(), 600);
-}
+    function addTransaction() {
+        const qty = parseInt(document.getElementById('qty-input').value);
+        if (!qty || qty <= 0) {
+            alert('Masukkan jumlah yang valid!');
+            return;
+        }
 
-/* ====== INPUT ====== */
-function updatePreview() {
-  const qty = parseInt(document.getElementById('qty-input').value) || 0;
-  document.getElementById('preview-total').textContent = 'Rp ' + fmt(qty * (selectedDenom || 0));
-}
+        const subtotal = currentNominal * qty;
+        transactions.push({
+            nominal: currentNominal,
+            qty: qty,
+            subtotal: subtotal
+        });
 
-function confirmEntry() {
-  const qty = parseInt(document.getElementById('qty-input').value);
-  if (!selectedDenom)  return showToast('⚠️ Pilih nominal dulu!', 'out');
-  if (!qty || qty < 1) return showToast('⚠️ Isi jumlah lembar!', 'out');
-  const d    = DENOMS.find(x => x.val === selectedDenom);
-  const note = document.getElementById('note-input').value.trim();
-  const tx   = {
-    id: Date.now(), mode,
-    denom: selectedDenom, denomLabel: d.label, denomIcon: d.icon,
-    qty, total: qty * selectedDenom, note,
-    time: new Date().toLocaleString('id-ID', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
-  };
-  transactions.unshift(tx);
-  save(); renderHistory(); updateSummary();
-  document.getElementById('qty-input').value = '';
-  document.getElementById('note-input').value = '';
-  document.getElementById('preview-total').textContent = 'Rp 0';
-  selectedDenom = null; renderDenoms();
-  document.getElementById('input-section').classList.remove('visible');
-  showToast((mode==='in' ? '✅ Pemasukan' : '📤 Pengeluaran') + ' Rp ' + fmt(tx.total) + ' dicatat!', mode);
-}
+        document.getElementById('qty-input').value = '';
+        document.getElementById('input-area').style.display = 'none';
+        updateUI();
+    }
 
-/* ====== HISTORY ====== */
-function renderHistory() {
-  const list = document.getElementById('history-list');
-  if (!transactions.length) {
-    list.innerHTML = `<div class="history-empty"><span class="ei">📋</span>Belum ada transaksi.<br>Mulai catat pemasukan atau pengeluaran!</div>`;
-    return;
-  }
-  list.innerHTML = '';
-  transactions.forEach(tx => {
-    const d = document.createElement('div');
-    d.className = 'hist-item ' + tx.mode;
-    d.innerHTML = `
-      <div class="hist-icon">${tx.denomIcon}</div>
-      <div class="hist-info">
-        <div class="hist-name">${tx.qty} × Rp ${tx.denomLabel}</div>
-        <div class="hist-meta">${tx.mode==='in' ? '📥 Pemasukan' : '📤 Pengeluaran'} · ${tx.time}</div>
-        ${tx.note ? `<div class="hist-note">📝 ${tx.note}</div>` : ''}
-      </div>
-      <div class="hist-amount ${tx.mode}">${tx.mode==='in' ? '+' : '-'}Rp ${fmt(tx.total)}</div>`;
-    list.appendChild(d);
-  });
-}
+    function deleteItem(index) {
+        transactions.splice(index, 1);
+        updateUI();
+    }
 
-/* ====== SUMMARY ====== */
-function updateSummary() {
-  const tIn  = transactions.filter(t=>t.mode==='in').reduce((a,t)=>a+t.total,0);
-  const tOut = transactions.filter(t=>t.mode==='out').reduce((a,t)=>a+t.total,0);
-  const sal  = tIn - tOut;
-  document.getElementById('total-in').textContent  = 'Rp ' + fmt(tIn);
-  document.getElementById('total-out').textContent = 'Rp ' + fmt(tOut);
-  const el = document.getElementById('total-saldo');
-  el.textContent = (sal<0?'-':'') + 'Rp ' + fmt(Math.abs(sal));
-  el.className   = 'sum-amount' + (sal>0?' positive':sal<0?' negative':'');
-}
+    function clearAll() {
+        if (confirm('Apakah Anda yakin ingin menghapus SEMUA riwayat?')) {
+            transactions = [];
+            updateUI();
+        }
+    }
 
-/* ====== STRUK ====== */
-function openStruk() {
-  const tIn  = transactions.filter(t=>t.mode==='in').reduce((a,t)=>a+t.total,0);
-  const tOut = transactions.filter(t=>t.mode==='out').reduce((a,t)=>a+t.total,0);
-  const sal  = tIn - tOut;
-  const cIn  = transactions.filter(t=>t.mode==='in').length;
-  const cOut = transactions.filter(t=>t.mode==='out').length;
-
-  const now  = new Date();
-  const tgl  = now.toLocaleDateString('id-ID', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
-  const jam  = now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
-
-  // hitung jam studi (durasi sesi)
-  const sesDur = Math.floor((Date.now() - sessionStart) / 1000);
-  const sesJam = Math.floor(sesDur / 3600);
-  const sesMen = Math.floor((sesDur % 3600) / 60);
-  const sesDet = sesDur % 60;
-  let jamStr = '';
-  if (sesJam > 0) jamStr += sesJam + ' jam ';
-  jamStr += sesMen + ' menit ';
-  jamStr += sesDet + ' detik';
-
-  document.getElementById('struk-datetime').innerHTML = `📅 ${tgl} &nbsp;·&nbsp; 🕐 ${jam}`;
-
-  const salEl = document.getElementById('struk-saldo');
-  salEl.textContent = (sal<0?'- ':'') + 'Rp ' + fmt(Math.abs(sal));
-  salEl.className   = 'struk-saldo-amount' + (sal>0?' s-pos':sal<0?' s-neg':'');
-
-  document.getElementById('struk-in').textContent        = 'Rp ' + fmt(tIn);
-  document.getElementById('struk-out').textContent       = 'Rp ' + fmt(tOut);
-  document.getElementById('struk-tx-total').textContent  = transactions.length;
-  document.getElementById('struk-tx-in').textContent     = cIn;
-  document.getElementById('struk-tx-out').textContent    = cOut;
-  document.getElementById('struk-jam-studi').textContent = jamStr;
-
-  document.getElementById('modal-bg').classList.add('open');
-}
-
-function closeStruk() { document.getElementById('modal-bg').classList.remove('open'); }
-function bgClose(e)   { if (e.target === document.getElementById('modal-bg')) closeStruk(); }
-
-function downloadStruk() {
-  const el  = document.getElementById('struk-wrap');
-  const gen = document.getElementById('gen-overlay');
-  gen.classList.add('show');
-  setTimeout(() => {
-    html2canvas(el, {
-      scale: 3,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      logging: false,
-    }).then(canvas => {
-      gen.classList.remove('show');
-      const now  = new Date();
-      const nama = `struk-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.png`;
-      const link = document.createElement('a');
-      link.download = nama;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      closeStruk();
-      showToast('✅ Struk berhasil disimpan!', 'in');
-    }).catch(() => {
-      gen.classList.remove('show');
-      showToast('❌ Gagal membuat struk', 'out');
-    });
-  }, 150);
-}
-
-/* ====== UTILS ====== */
-function save() { localStorage.setItem('dc_txs_v3', JSON.stringify(transactions)); }
-function fmt(n) { return n.toLocaleString('id-ID'); }
-
-let toastTimer;
-function showToast(msg, type) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className   = 'toast show t-' + (type==='in' ? 'in' : type==='out' ? 'out' : 'info');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
-}
-
-/* ====== INIT ====== */
-renderDenoms(); renderHistory(); updateSummary();
+    // Inisialisasi awal
+    updateUI();
 </script>
+
 </body>
 </html>
- 
